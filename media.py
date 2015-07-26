@@ -1,62 +1,90 @@
 #!/usr/bin/env python3
 
-print('''<!doctype html>
+media_types = [
+    # Media Queries level 4 defined:
+    'all', 'print', 'screen', 'speech',
+    # MQ4 deprecated:
+    'tty', 'tv', 'projection', 'handheld', 'braille', 'embossed', 'aural',
+    # Not mentioned in MQ4:
+    'tactile',
+]
+
+media_features = [
+    # Media Queries level 4 defined:
+    ('width', range(200, 4000), 'px'),
+    ('height', range(200, 4000), 'px'),
+    #'aspect-ratio'
+    ('orientation', ['portrait', 'landscape']),
+    ('resolution', range(80, 200), 'dpi'),
+    ('resolution', range(1, 4,), 'dppx'),
+    ('scan', ['interlace', 'progressive']),
+    ('grid', [0, 1]),
+    ('update-frequency', ['none', 'slow', 'normal']),
+    ('overflow-block', ['none', 'scroll', 'optional-paged', 'paged']),
+    ('overflow-inline', ['none', 'scroll']),
+    ('color', range(0, 16)),
+    ('color-index', range(0, 256)),
+    ('monochrome', range(0, 16)),
+    ('inverted-colors', ['none', 'inverted']),
+    ('pointer', ['none', 'coarse', 'fine']),
+    ('hover', ['none', 'on-demand', 'hover']),
+    ('any-pointer', ['none', 'coarse', 'fine']),
+    ('any-hover', ['none', 'on-demand', 'hover']),
+    ('light-level', ['dim', 'normal', 'washed']),
+    ('scripting', ['enabled', 'initial-only', 'none']),
+    # MQ4 deprecated:
+    ('device-width', range(200, 4000), 'px'),
+    ('device-height', range(200, 4000), 'px'),
+    #'device-aspect-ratio
+]
+
+def main():
+    print('''<!doctype html>
+<title>Media Query Answers</title>
 <style>
-p {
-    margin: 0;
-}
-p:first-child::after, p:last-child::after {
-    /* We can't know whether this is the true value because we didn't test both
-     * sides.  The true value is probably outside the range. */
-    text-decoration: line-through;
-    color: red;
-}
-div {
-    height: 1.25em;
-    overflow: hidden;
-    margin-top: 0.5em;
-    margin-bottom: 0.5em;
-}
+p {{ display: none; }}
 </style>
-
 <meta name="viewport" content="initial-scale=1">
-<h1>Media types</h1>''')
 
-media_types = ('all', 'aural', 'braille', 'handheld', 'print', 'projection',
-    'screen', 'tty', 'tv', 'embossed', 'tactile')
-print('<style>')
-for type in media_types:
-    print('@media {0} {{ #{0}::after {{ content: "{0}"; }} }}'.format(type))
-print('</style>')
-for type in media_types:
-    print('<p id="{0}">'.format(type))
+<h1>Media Query Answers</h1>
 
-print('<h1>Media features</h1>')
-def show_feature(feature, range, unit):
-    print('<h2>{feature}</h2>'.format(feature=feature))
-    queries = ['min-{feature}:{number}{unit}'.format(
-        feature=feature, number=number, unit=unit) for number in range]
-    queries = [(q, q.replace(':', '-')) for q in queries]
-    print('<style>')
-    for q in queries:
-        print('''@media ({0}) {{
-    #{1}::after {{
-        height: 1.25em;
-        content: "{0}";
-    }}
-}}'''.format(*q))
-    print('</style>')
-    print('<div>')
-    for q in reversed(queries):
-        print('<p id="{1}">'.format(*q))
-    print('<p>????</p>')
-    print('</div>')
+<h2>Media types</h2>
+{types}
 
-show_feature('resolution', range(80, 200), 'dpi')
-show_feature('width', range(200, 4000), 'px')
-show_feature('height', range(200, 4000), 'px')
-show_feature('device-width', range(100, 2000), 'px')
-show_feature('device-height', range(200, 2000), 'px')
-show_feature('color', range(1, 16), '')
-show_feature('color-index', range(1, 16), '')
+<h2>Media features</h2>
+{features}
+'''.format(types=types(),
+           features='\n'.join(feature(*f) for f in media_features)))
 
+def types():
+    styles = []
+    tests = []
+    for type in media_types:
+        styles.append('@media {type} {{ #{type} {{ display: block; }} }}'
+                .format(type=type))
+        tests.append('<p id="{type}">{type}</p>'
+                .format(type=type))
+    return '''
+<style>
+{styles}
+</style>
+{tests}'''.format(styles='\n'.join(styles), tests='\n'.join(tests))
+
+def feature(name, values, unit=''):
+    styles = []
+    tests = []
+    for value in values:
+        styles.append(('@media ({name}: {value}{unit}) {{'
+                '#{name}-{value}{unit} {{ display: block; }} }}').format(
+                    name=name, value=value, unit=unit))
+        tests.append('<p id="{name}-{value}{unit}">{value}{unit}</p>'.format(
+                    name=name, value=value, unit=unit))
+    return '''
+<h3>{name}</h3>
+<style>
+{styles}
+</style>
+{tests}'''.format(name=name, styles='\n'.join(styles), tests='\n'.join(tests))
+
+if __name__ == '__main__':
+    main()
