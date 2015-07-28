@@ -4,6 +4,14 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+# From the Python itertools docs:
+import itertools
+def pairwise(iterable):
+    "s -> (s0,s1), (s1,s2), (s2, s3), ..."
+    a, b = itertools.tee(iterable)
+    next(b, None)
+    return zip(a, b)
+
 media_types = [
     # Media Queries level 4 defined:
     'all', 'print', 'screen', 'speech',
@@ -74,21 +82,44 @@ def types():
 </style>
 {tests}'''.format(styles='\n'.join(styles), tests='\n'.join(tests))
 
-def feature(name, values, unit=''):
+def feature(name, values, *args):
+    if isinstance(values[0], str):
+        format = format_discrete
+    else:
+        format = format_range
+        values = pairwise(values)
+
     styles = []
     tests = []
     for value in values:
-        styles.append(('@media ({name}: {value}{unit}) {{'
-                '#{name}-{value}{unit} {{ display: block; }} }}').format(
-                    name=name, value=value, unit=unit))
-        tests.append('<p id="{name}-{value}{unit}">{value}{unit}</p>'.format(
-                    name=name, value=value, unit=unit))
+        cond, label = format(name, value, *args)
+        id = css_id(name, label)
+
+        styles.append(('@media {cond} {{ #{id} {{ display: block; }} }}')
+                .format(cond=cond, id=id))
+        tests.append('<p id="{id}">{label}</p>'
+                .format(id=id, label=label))
     return '''
 <h3>{name}</h3>
 <style>
 {styles}
 </style>
 {tests}'''.format(name=name, styles='\n'.join(styles), tests='\n'.join(tests))
+
+def format_discrete(name, value):
+    cond = '({name}: {value})'.format(name=name, value=value)
+    label = value
+    return cond, label
+
+def format_range(name, value, unit=''):
+    cond = ('(min-{name}: {min}{unit}) and (max-{name}: {max}{unit})'
+            .format(name=name, min=value[0], max=value[1], unit=unit))
+    label = ('{min}&ndash;{max}{unit}'
+            .format(min=value[0], max=value[1], unit=unit))
+    return cond, label
+
+def css_id(name, label):
+    return '{}--{}'.format(name, ''.join(x for x in label if x.isalnum()))
 
 if __name__ == '__main__':
     main()
