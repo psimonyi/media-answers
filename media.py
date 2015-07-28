@@ -28,7 +28,9 @@ media_features = [
     #'aspect-ratio'
     ('orientation', ['portrait', 'landscape']),
     ('resolution', range(80, 200), 'dpi'),
-    ('resolution', range(1, 4,), 'dppx'),
+    # It appears that, contrary to both MQ3 and MQ4, only integers are accepted
+    # in front of dppx.
+    ('resolution', ['1dppx', '2dppx']),
     ('scan', ['interlace', 'progressive']),
     ('grid', [0, 1]),
     ('update-frequency', ['none', 'slow', 'normal']),
